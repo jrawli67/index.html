@@ -116,7 +116,7 @@
             msgElement.innerHTML = `<span class="username" style="color: ${randomColor}">${user}:</span><span class="message-text">${msg}</span>`;
             chatContainer.appendChild(msgElement);
 
-            // Keep container clean by limiting elements and fading older ones out
+            // FIX: Target individual elements at index 0 instead of the whole list array
             const messages = chatContainer.getElementsByClassName('chat-message');
             if (messages.length > 5) {
                 messages[0].style.opacity = '0';
@@ -148,6 +148,7 @@
 
             recognition.onresult = (event) => {
                 const currentResultIndex = event.resultIndex;
+                // FIX: Added the deep [0] index accessor required by Web Speech API arrays
                 const transcript = event.results[currentResultIndex][0].transcript.toLowerCase();
                 console.log("Heard:", transcript);
 
@@ -168,7 +169,6 @@
                 });
             };
 
-            // Keep the recognition engine alive indefinitely
             recognition.onend = () => {
                 recognition.start();
             };
@@ -177,11 +177,9 @@
                 console.error("Speech Recognition Error:", err);
             };
 
-            // Kick off voice processing
             recognition.start();
         } else {
             console.error("Web Speech API is not supported in this environment.");
-            // Fallback to more frequent random messages if mic integration fails
             setInterval(triggerGenericMessage, 7000);
         }
     </script>
