@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Interactive Stream Chat Simulator</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background: transparent;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 20px;
+        }
+        #chat-container {
+            width: 380px;
+            max-height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            gap: 10px;
+            mask-image: linear-gradient(to top, rgba(0,0,0,1) 80%, rgba(0,0,0,0) 100%);
+            -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1) 80%, rgba(0,0,0,0) 100%);
+        }
+        .chat-message {
+            background: rgba(20, 20, 25, 0.65);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px rgba(255,255,255,0.08) solid;
+            color: #ffffff;
+            padding: 10px 14px;
+            border-radius: 16px;
+            font-size: 15px;
+            line-height: 1.4;
+            max-width: 100%;
+            word-wrap: break-word;
+            animation: slideUp 0.3s ease-out forwards;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: block;
+            transition: opacity 0.5s ease;
+        }
+        .username {
+            font-weight: 700;
+            margin-right: 8px;
+        }
+        .message-text {
+            color: #f1f1f1;
+        }
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="chat-container"></div>
+
+    <script>
+        // --- Pools & Data Structure ---
+        const usernames = [
+            "PixelKnight", "CozyGamer99", "AuraVibes", "MathsMagician", "X_Equals_Win", 
+            "FortnitePhenom", "ChugJugChamp", "CalculusCrusader", "TiltedTeacher", "AlphaFraction",
+            "SkinsAndSines", "DerivativE", "Crankin99s", "BoxedLikeAFish", "GeometryGuru",
+            "SweatyDivide", "Pythagoras_", "ShieldsUp", "NoBuildNoProblem", "MatrixMan",
+            "VBucksAndVectors", "ZeroBuildHero", "RiotShield_Math", "Theorem_TV", "LootsAndLimits"
+        ];
+
+        const genericMessages = [
+            "yo streamer what's up!", "hype stream today", "let's gooo", "clean layout honestly",
+            "wsp chat", "lmao true", "mood", "ayyyy", "cool cool", "monkaS", "PogChamp",
+            "can we get a shoutout?", "bro same", "👀", "underrated stream right here",
+            "just lurkin, glhf!", "nice", "how is everyone doing?"
+        ];
+
+        const colors = ["#ff4a4a", "#4eff4a", "#4a9eff", "#ffbc4a", "#ff4ae2", "#4affd0", "#d04aff", "#ffff4a"];
+
+        const responsesMap = [
+            // FORTNITE TRIGGERS
+            { keys: ["victory royale", "win"], replies: ["GG!!!", "LETS GOOOO", "Crown win incoming!", "Huge dub"] },
+            { keys: ["clutch", "pog", "insane"], replies: ["clipped!", "bro is cracked", "what a shot", "cracked out of his mind"] },
+            { keys: ["sweat", "tryhard"], replies: ["lmao soccer skin activities", "average arena player", "he building a hotel"] },
+            { keys: ["shield", "chug", "medkit"], replies: ["pop that big pot", "need white heals", "shield check"] },
+            
+            // MATHS TRIGGERS
+            { keys: ["solve", "equation", "x equals"], replies: ["oh wait I get it now", "math is actually making sense", "write that down!", "show your working out pls"] },
+            { keys: ["fraction", "divide", "multiply"], replies: ["cross multiply right?", "calculators are shaking", "the common denominator!"] },
+            { keys: ["quiz", "test", "question"], replies: ["put me in coach", "i know this one", "wait go back a step please", "is this going to be on the exam?"] },
+            { keys: ["genius", "correct", "smart"], replies: ["5head", "big brain streamer", "Einstein who?", "genius chat"] }
+        ];
+
+        const chatContainer = document.getElementById('chat-container');
+
+        // --- Core Functions ---
+        function addMessage(user, msg) {
+            const msgElement = document.createElement('div');
+            msgElement.className = 'chat-message';
+            
+            const randomColor = colors[Math.floor(Math.random() * colors.length)];
+            
+            msgElement.innerHTML = `<span class="username" style="color: ${randomColor}">${user}:</span><span class="message-text">${msg}</span>`;
+            chatContainer.appendChild(msgElement);
+
+            // Keep container clean by limiting elements and fading older ones out
+            const messages = chatContainer.getElementsByClassName('chat-message');
+            if (messages.length > 5) {
+                messages[0].style.opacity = '0';
+                setTimeout(() => {
+                    if(messages[0]) messages[0].remove();
+                }, 500);
+            }
+        }
+
+        function triggerGenericMessage() {
+            const randomUser = usernames[Math.floor(Math.random() * usernames.length)];
+            const randomMsg = genericMessages[Math.floor(Math.random() * genericMessages.length)];
+            addMessage(randomUser, randomMsg);
+        }
+
+        // --- Baseline Loop (Every 15 Seconds) ---
+        setInterval(triggerGenericMessage, 15000);
+        // Start with a generic message on load
+        setTimeout(triggerGenericMessage, 2000);
+
+        // --- Voice Listening Mechanics ---
+        window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+        if (window.SpeechRecognition) {
+            const recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = false;
+            recognition.lang = 'en-US';
+
+            recognition.onresult = (event) => {
+                const currentResultIndex = event.resultIndex;
+                const transcript = event.results[currentResultIndex][0].transcript.toLowerCase();
+                console.log("Heard:", transcript);
+
+                // Check for matches
+                responsesMap.forEach(group => {
+                    const matched = group.keys.some(key => transcript.includes(key));
+                    if (matched) {
+                        // Deliver a wave of 1 to 3 instant responses to make it feel organic
+                        const responseCount = Math.floor(Math.random() * 3) + 1;
+                        for (let i = 0; i < responseCount; i++) {
+                            setTimeout(() => {
+                                const randomUser = usernames[Math.floor(Math.random() * usernames.length)];
+                                const randomReply = group.replies[Math.floor(Math.random() * group.replies.length)];
+                                addMessage(randomUser, randomReply);
+                            }, i * 400 + Math.random() * 300); // slight delay between users typing
+                        }
+                    }
+                });
+            };
+
+            // Keep the recognition engine alive indefinitely
+            recognition.onend = () => {
+                recognition.start();
+            };
+
+            recognition.onerror = (err) => {
+                console.error("Speech Recognition Error:", err);
+            };
+
+            // Kick off voice processing
+            recognition.start();
+        } else {
+            console.error("Web Speech API is not supported in this environment.");
+            // Fallback to more frequent random messages if mic integration fails
+            setInterval(triggerGenericMessage, 7000);
+        }
+    </script>
+</body>
+</html>
